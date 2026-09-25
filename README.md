@@ -81,7 +81,8 @@ WEEKLY REPORT (independent schedule)
 | --- | --- |
 | **Workflow Overview**<br>[![Workflow](screenshots/01_workflow_overview.png)](screenshots/01_workflow_overview.png) | **Cart Recovery Tracker**<br>[![Tracker](screenshots/02_cart_recovery_tracker.png)](screenshots/02_cart_recovery_tracker.png) |
 | **Reminder Email**<br>[![Reminder](screenshots/03_reminder_email.png)](screenshots/03_reminder_email.png) | **Discount Email**<br>[![Discount](screenshots/04_discount_email.png)](screenshots/04_discount_email.png) |
-| **Thank-You + Upsell Email**<br>[![Thank You](screenshots/05_thankyou_email.png)](screenshots/05_thankyou_email.png) | **Weekly Summary Email**<br>[![Weekly Summary](screenshots/06_weekly_summary_email.png)](screenshots/06_weekly_summary_email.png) |
+| **Urgency Email**<br>[![Urgency](screenshots/05_urgency_email.png)](screenshots/05_urgency_email.png) | **Thank-You + Upsell Email**<br>[![Thank You](screenshots/06_thankyou_email.png)](screenshots/06_thankyou_email.png) |
+| **Weekly Summary Email**<br>[![Weekly Summary](screenshots/07_weekly_summary_email.png)](screenshots/07_weekly_summary_email.png) | |
 
 ## Future Enhancements
 

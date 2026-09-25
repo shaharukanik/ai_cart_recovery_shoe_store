@@ -1,0 +1,1691 @@
+{
+  "name": "Abandoned Cart Recovery Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "your-cart-recovery-webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -128,
+        -80
+      ],
+      "id": "4fbf5ada-21fe-44b4-86f3-a2460c62e02b",
+      "name": "Webhook",
+      "webhookId": "your-cart-recovery-webhook"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "Cart Recovery Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Checkout Token",
+              "lookupValue": "={{ $('Webhook').first().json.body.cart_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        768,
+        -176
+      ],
+      "id": "b3826ec1-efdd-4586-94b9-2506d75546ff",
+      "name": "Get Checkout Row",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MibvnPXiFQoGx68A",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2112,
+        -176
+      ],
+      "id": "60701c3d-b797-411b-bbec-7c04860074e9",
+      "name": "Wait 24h",
+      "webhookId": "4886e668-78ec-44fb-950c-6de37211c3ac"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "Cart Recovery Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Checkout Token",
+              "lookupValue": "={{ $('Webhook').first().json.body.cart_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2336,
+        -176
+      ],
+      "id": "c5f3bb90-a62f-4569-82bb-84698c36adc9",
+      "name": "Get Checkout Row 2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MibvnPXiFQoGx68A",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "76ec730c-a30d-410f-a95c-6c9803d292b3",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "Recovered",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2560,
+        -176
+      ],
+      "id": "00bdc427-65c9-4097-823a-61b6ec5e4097",
+      "name": "Filter Discount"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"model\": \"llama3.2\",\n  \"stream\": false,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an AI assistant writing a cart-abandonment follow-up email for a shoe store. Use ONLY the exact product name and price given - never invent other products, colors, sizes, or details.\\n\\nThis is the SECOND email, sent 24 hours after the first reminder, since the customer still hasn't purchased. Offer a 10% discount using code CART10 to nudge them toward completing the purchase. Tone: warmer and a bit more encouraging than a plain reminder, but not desperate or pushy.\\n\\nWrite ONLY 2-3 sentences for the middle of the email. No greeting (Dear/Hi), no signature (Best regards/etc) - those are added separately.\\n\\nAlways output exactly these 2 fields, nothing else:\\nEMAIL_SUBJECT: (short subject line)\\nEMAIL_BODY: (2-3 sentences mentioning the 10% discount and code CART10)\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Abandoned item:\\nProduct: \" + $json.Product + \"\\nPrice: $\" + $json.Price\n    }\n  ]\n}) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2784,
+        -176
+      ],
+      "id": "80b92796-f2f2-4a78-a762-46d81770dca8",
+      "name": "HTTP Request Discount"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = items[0].json.message.content;\n\nconst subjectMatch = response.match(/EMAIL[\\s_]SUBJECT:\\s*(.*)/i);\n\nconst bodyRegex = /EMAIL[\\s_]BODY:/gi;\nlet lastIndex = -1, match;\nwhile ((match = bodyRegex.exec(response)) !== null) {\n  lastIndex = match.index + match[0].length;\n}\n\nconst checkoutRow = $('Get Checkout Row 2').first().json;\n\nconst email_subject = subjectMatch ? subjectMatch[1].trim().replace(/^[\"']|[\"']$/g, '') : 'Still thinking it over?';\n\nlet raw_body = lastIndex !== -1 ? response.slice(lastIndex).trim() : '';\nif (!raw_body) raw_body = `Your ${checkoutRow.Product} ($${checkoutRow.Price}) is still waiting for you.`;\n\nraw_body = raw_body.replace(/^(Dear|Hi|Hello|Hey)\\b[^.!?\\n]{0,30}[.!?]\\s*/i, '');\nraw_body = raw_body.replace(/\\n*\\b(Best regards|Sincerely|Warm regards)\\b[\\s\\S]*$/i, '').trim();\n\nconst cleaned = raw_body\n  .replace(/\\r\\n/g, '\\n')\n  .replace(/\\n{2,}/g, '\\n\\n')\n  .split('\\n\\n')\n  .map(p => p.replace(/\\n/g, ' ').replace(/\\s+/g, ' ').trim())\n  .filter(p => p.length > 0)\n  .join('<br><br>');\n\nconst companyName = 'StrideWell Footwear';\n\nconst email_body = `Hi there,<br><br>${cleaned}<br><br><a href=\"${checkoutRow['Recovery Link']}\">Complete your order</a><br><br>Best regards,<br>${companyName} Team`;\n\nreturn [{\n  json: {\n    email_subject,\n    email_body,\n    to_email: checkoutRow.Email\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3008,
+        -176
+      ],
+      "id": "68408790-8424-41c0-a22d-1da5a39ce991",
+      "name": "Code Discount"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to_email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        3232,
+        -176
+      ],
+      "id": "7dacba79-663d-4e12-aeb6-f286cef4f4b3",
+      "name": "Gmail Discount",
+      "webhookId": "75768d50-f305-4b7c-87f7-ef94d001bff2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "SpT0jIgZBEiEW6bI",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "Cart Recovery Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Checkout Token": "={{ $('Webhook').first().json.body.cart_token }}",
+            "Email": "={{ $('Get Checkout Row 2').first().json.Email }}",
+            "Product": "={{ $('Get Checkout Row 2').first().json.Product }}",
+            "Price": "={{ $('Get Checkout Row 2').first().json.Price }}",
+            "Status": "Discount Sent",
+            "Recovery Link": "={{ $('Get Checkout Row 2').first().json['Recovery Link'] }}",
+            "Created At": "={{ $('Get Checkout Row 2').first().json['Created At'] }}",
+            "Last Updated": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "Checkout Token"
+          ],
+          "schema": [
+            {
+              "id": "Checkout Token",
+              "displayName": "Checkout Token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product",
+              "displayName": "Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Price",
+              "displayName": "Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recovery Link",
+              "displayName": "Recovery Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Updated",
+              "displayName": "Last Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3456,
+        -176
+      ],
+      "id": "bf1b95e4-d93a-44ba-8011-d0b72965ed8d",
+      "name": "Sheets Discount Sent",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MibvnPXiFQoGx68A",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 48,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3680,
+        -176
+      ],
+      "id": "ece29777-e778-4e4b-8e89-c9ae24bac7fb",
+      "name": "Wait 48h",
+      "webhookId": "4886e668-78ec-44fb-950c-6de37211c3ac"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "Cart Recovery Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Checkout Token",
+              "lookupValue": "={{ $('Webhook').first().json.body.cart_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3904,
+        -176
+      ],
+      "id": "7e0b4d36-79fa-4334-9c50-f9844ae7c79d",
+      "name": "Get Checkout Row 3",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MibvnPXiFQoGx68A",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "76ec730c-a30d-410f-a95c-6c9803d292b3",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "Recovered",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        4128,
+        -176
+      ],
+      "id": "17a603bd-f72c-4e81-9c60-2220be741a98",
+      "name": "Filter Urgency"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"model\": \"llama3.2\",\n  \"stream\": false,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an AI assistant writing a final cart-abandonment email for a shoe store. Use ONLY the exact product name and price given - never invent other products, colors, sizes, or stock counts.\\n\\nThis is the THIRD and final email, sent 48 hours after the original abandonment. The customer already has a 10% discount available with code CART10 from the previous email - remind them it won't be held much longer. Create genuine last-chance urgency WITHOUT fabricating fake scarcity claims like a specific 'only X left' number, since we don't actually have real-time stock data in this flow.\\n\\nWrite ONLY 2-3 sentences for the middle of the email. No greeting, no signature.\\n\\nAlways output exactly these 2 fields, nothing else:\\nEMAIL_SUBJECT: (short subject line)\\nEMAIL_BODY: (2-3 sentences creating urgency, mentioning code CART10 one final time)\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Abandoned item:\\nProduct: \" + $json.Product + \"\\nPrice: $\" + $json.Price\n    }\n  ]\n}) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4352,
+        -176
+      ],
+      "id": "4bc6bafc-88be-4d07-ae56-18de2bbccdab",
+      "name": "HTTP Request Urgency"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = items[0].json.message.content;\n\nconst subjectMatch = response.match(/EMAIL[\\s_]SUBJECT:\\s*(.*)/i);\n\nconst bodyRegex = /EMAIL[\\s_]BODY:/gi;\nlet lastIndex = -1, match;\nwhile ((match = bodyRegex.exec(response)) !== null) {\n  lastIndex = match.index + match[0].length;\n}\n\nconst checkoutRow = $('Get Checkout Row 3').first().json;\n\nconst email_subject = subjectMatch ? subjectMatch[1].trim().replace(/^[\"']|[\"']$/g, '') : 'Still thinking it over?';\n\nlet raw_body = lastIndex !== -1 ? response.slice(lastIndex).trim() : '';\nif (!raw_body) raw_body = `Your ${checkoutRow.Product} ($${checkoutRow.Price}) is still waiting for you.`;\n\nraw_body = raw_body.replace(/^(Dear|Hi|Hello|Hey)\\b[^.!?\\n]{0,30}[.!?]\\s*/i, '');\nraw_body = raw_body.replace(/\\n*\\b(Best regards|Sincerely|Warm regards)\\b[\\s\\S]*$/i, '').trim();\n\nconst cleaned = raw_body\n  .replace(/\\r\\n/g, '\\n')\n  .replace(/\\n{2,}/g, '\\n\\n')\n  .split('\\n\\n')\n  .map(p => p.replace(/\\n/g, ' ').replace(/\\s+/g, ' ').trim())\n  .filter(p => p.length > 0)\n  .join('<br><br>');\n\nconst companyName = 'StrideWell Footwear';\n\nconst email_body = `Hi there,<br><br>${cleaned}<br><br><a href=\"${checkoutRow['Recovery Link']}\">Complete your order</a><br><br>Best regards,<br>${companyName} Team`;\n\nreturn [{\n  json: {\n    email_subject,\n    email_body,\n    to_email: checkoutRow.Email\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4576,
+        -176
+      ],
+      "id": "da950ef8-200a-410a-8889-2599a0031ad2",
+      "name": "Code Urgency"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to_email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        4800,
+        -176
+      ],
+      "id": "c2798753-42ac-4c20-8786-6873c967ebb7",
+      "name": "Gmail Urgency",
+      "webhookId": "75768d50-f305-4b7c-87f7-ef94d001bff2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "SpT0jIgZBEiEW6bI",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "Cart Recovery Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Checkout Token": "={{ $('Webhook').first().json.body.cart_token }}",
+            "Email": "={{ $('Get Checkout Row 3').first().json.Email }}",
+            "Product": "={{ $('Get Checkout Row 3').first().json.Product }}",
+            "Price": "={{ $('Get Checkout Row 3').first().json.Price }}",
+            "Status": "Urgency Sent",
+            "Recovery Link": "={{ $('Get Checkout Row 3').first().json['Recovery Link'] }}",
+            "Created At": "={{ $('Get Checkout Row 3').first().json['Created At'] }}",
+            "Last Updated": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "Checkout Token"
+          ],
+          "schema": [
+            {
+              "id": "Checkout Token",
+              "displayName": "Checkout Token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product",
+              "displayName": "Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Price",
+              "displayName": "Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recovery Link",
+              "displayName": "Recovery Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Updated",
+              "displayName": "Last Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        5024,
+        -176
+      ],
+      "id": "bed783dd-6e95-4723-a76e-4209a029fe2f",
+      "name": "Sheets Urgency Sent",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MibvnPXiFQoGx68A",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "Cart Recovery Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Checkout Token": "={{ $json.body.cart_token }}",
+            "Email": "={{ $json.body.email }}",
+            "Product": "={{ $json.body.line_items[0].title }}",
+            "Price": "={{ $json.body.total_price }}",
+            "Status": "Recovered",
+            "Last Updated": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "Checkout Token"
+          ],
+          "schema": [
+            {
+              "id": "Checkout Token",
+              "displayName": "Checkout Token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product",
+              "displayName": "Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Price",
+              "displayName": "Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recovery Link",
+              "displayName": "Recovery Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Updated",
+              "displayName": "Last Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        320,
+        16
+      ],
+      "id": "8e326343-f207-4182-bddf-23dbb1226c76",
+      "name": "Sheets Order Recovered",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MibvnPXiFQoGx68A",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"model\": \"llama3.2\",\n  \"stream\": false,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an AI assistant writing a post-purchase thank-you email for a shoe store. Use ONLY the exact product names and prices given - never invent other products, colors, sizes, or details.\\n\\nThe customer just completed a purchase. Thank them warmly and briefly, then suggest ONE additional product as a complementary recommendation - keep it low-pressure, not a hard sell.\\n\\nWrite ONLY 2-3 sentences for the middle of the email. No greeting, no signature.\\n\\nAlways output exactly these 2 fields, nothing else:\\nEMAIL_SUBJECT: (short subject line)\\nEMAIL_BODY: (2-3 sentences: thank you + one upsell suggestion)\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Purchased:\\nProduct: \" + $json.purchased_product + \"\\nPrice: $\" + $json.purchased_price + \"\\n\\nSuggested upsell:\\nProduct: \" + $json.upsell_product + \"\\nPrice: $\" + $json.upsell_price\n    }\n  ]\n}) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        768,
+        16
+      ],
+      "id": "f6600a30-ac5d-499b-99f7-1770ef329d10",
+      "name": "HTTP Request Thank you"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = items[0].json.message.content;\n\nconst subjectMatch = response.match(/EMAIL[\\s_]SUBJECT:\\s*(.*)/i);\n\nconst bodyRegex = /EMAIL[\\s_]BODY:/gi;\nlet lastIndex = -1, match;\nwhile ((match = bodyRegex.exec(response)) !== null) {\n  lastIndex = match.index + match[0].length;\n}\n\nconst upsellData = $('Pick Upsell').first().json;\n\nconst email_subject = subjectMatch ? subjectMatch[1].trim().replace(/^[\"']|[\"']$/g, '') : 'Thanks for your order!';\n\nlet raw_body = lastIndex !== -1 ? response.slice(lastIndex).trim() : '';\nif (!raw_body) raw_body = `Thanks for your order! You might also like our ${upsellData.upsell_product} ($${upsellData.upsell_price}).`;\n\nraw_body = raw_body.replace(/^(Dear|Hi|Hello|Hey)\\b[^.!?\\n]{0,30}[.!?]\\s*/i, '');\nraw_body = raw_body.replace(/\\n*\\b(Best regards|Sincerely|Warm regards)\\b[\\s\\S]*$/i, '').trim();\n\nconst cleaned = raw_body\n  .replace(/\\r\\n/g, '\\n')\n  .replace(/\\n{2,}/g, '\\n\\n')\n  .split('\\n\\n')\n  .map(p => p.replace(/\\n/g, ' ').replace(/\\s+/g, ' ').trim())\n  .filter(p => p.length > 0)\n  .join('<br><br>');\n\nconst companyName = 'StrideWell Footwear';\n\nconst email_body = `Hi there,<br><br>${cleaned}<br><br>Best regards,<br>${companyName} Team`;\n\nreturn [{\n  json: {\n    email_subject,\n    email_body,\n    to_email: upsellData.email\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        16
+      ],
+      "id": "f6f73bba-3dc0-4119-ae50-81d7bf4329c0",
+      "name": "Code Thank you"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to_email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        16
+      ],
+      "id": "02894460-b85b-43f7-98fd-2f79140e6cda",
+      "name": "Gmail Thank you",
+      "webhookId": "75768d50-f305-4b7c-87f7-ef94d001bff2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "SpT0jIgZBEiEW6bI",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const catalog = [\n  { name: 'Trail Runner Pro', price: 89.99 },\n  { name: 'Classic Canvas Sneaker', price: 54.99 },\n  { name: 'All-Day Comfort Slip-On', price: 64.99 }\n];\n\nconst purchased = items[0].json.Product;\nconst email = items[0].json.Email;\nconst purchasedPrice = items[0].json.Price;\n\nconst upsellOptions = catalog.filter(p => p.name !== purchased);\nconst upsell = upsellOptions[Math.floor(Math.random() * upsellOptions.length)];\n\nreturn [{\n  json: {\n    purchased_product: purchased,\n    purchased_price: purchasedPrice,\n    email,\n    upsell_product: upsell.name,\n    upsell_price: upsell.price\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        16
+      ],
+      "id": "c0c18d92-7c44-4ebd-a825-657d826445ef",
+      "name": "Pick Upsell"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -128,
+        240
+      ],
+      "id": "8336959d-f3fb-4c28-aa6a-f7449f5bb130",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = items.map(item => item.json);\n\nconst now = new Date();\nconst sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\n\nconst thisWeekRows = rows.filter(row => {\n  const created = new Date(row['Created At']);\n  return created >= sevenDaysAgo && created <= now;\n});\n\nconst recoveredRows = thisWeekRows.filter(row => row['Status'] === 'Recovered');\n\nconst totalAbandoned = thisWeekRows.length;\nconst totalRecovered = recoveredRows.length;\nconst revenueRecovered = recoveredRows.reduce((sum, row) => sum + Number(row['Price'] || 0), 0);\nconst recoveryRate = totalAbandoned > 0 ? Math.round((totalRecovered / totalAbandoned) * 100) : 0;\n\nconst email_subject = `Cart Recovery Summary — $${revenueRecovered.toFixed(2)} Recovered This Week`;\n\nconst email_body = `Here's your cart recovery summary for the past 7 days:<br><br><strong>$${revenueRecovered.toFixed(2)} recovered</strong> from ${totalRecovered} cart${totalRecovered === 1 ? '' : 's'}<br>${totalAbandoned} total cart${totalAbandoned === 1 ? '' : 's'} abandoned<br>${recoveryRate}% recovery rate<br><br>StrideWell Footwear — Cart Recovery Agent`;\n\nreturn [{ json: { email_subject, email_body } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        240
+      ],
+      "id": "24df5906-b5b1-4fe0-a285-936faba53670",
+      "name": "Weekly Stats"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "Cart Recovery Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Checkout Token": "={{ $json.body.cart_token }}",
+            "Email": "={{ $json.body.email }}",
+            "Product": "={{ $json.body.line_items[0].title }}",
+            "Price": "={{ $json.body.total_price }}",
+            "Status": "=",
+            "Recovery Link": "={{ $json.body.abandoned_checkout_url }}",
+            "Created At": "={{ $json.body.created_at }}",
+            "Last Updated": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "Checkout Token"
+          ],
+          "schema": [
+            {
+              "id": "Checkout Token",
+              "displayName": "Checkout Token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product",
+              "displayName": "Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Price",
+              "displayName": "Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recovery Link",
+              "displayName": "Recovery Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Updated",
+              "displayName": "Last Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        96,
+        -176
+      ],
+      "id": "c295f338-2761-44ec-bffb-50145a806410",
+      "name": "Log Checkout",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MibvnPXiFQoGx68A",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d53159b3-83df-4339-a1f0-50b37e44403b",
+              "leftValue": "={{ $('Webhook').first().json.headers['x-shopify-topic'] }}",
+              "rightValue": "checkouts/create",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        320,
+        -176
+      ],
+      "id": "6c5c520f-bfa0-425c-b770-90ee79f520b3",
+      "name": "Filter New Checkouts"
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        544,
+        -176
+      ],
+      "id": "eb838219-938e-4195-ae4c-dac75e0029c5",
+      "name": "Wait 1h",
+      "webhookId": "4886e668-78ec-44fb-950c-6de37211c3ac"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "76ec730c-a30d-410f-a95c-6c9803d292b3",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "Recovered",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        992,
+        -176
+      ],
+      "id": "70f49543-12ad-4597-8db5-de656386fed3",
+      "name": "Filter Reminder"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"model\": \"llama3.2\",\n  \"stream\": false,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an AI assistant writing a cart-abandonment reminder email for a shoe store. Use ONLY the exact product name and price given - never invent other products, colors, sizes, or details.\\n\\nThis is the FIRST reminder, sent 1 hour after the customer left their cart. Keep the tone light and helpful, not pushy - no discount, no urgency language.\\n\\nWrite ONLY 2-3 sentences for the middle of the email. No greeting (Dear/Hi), no signature (Best regards/etc) - those are added separately.\\n\\nAlways output exactly these 2 fields, nothing else:\\nEMAIL_SUBJECT: (short subject line)\\nEMAIL_BODY: (2-3 sentence reminder only)\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Abandoned item:\\nProduct: \" + $json.Product + \"\\nPrice: $\" + $json.Price\n    }\n  ]\n}) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1216,
+        -176
+      ],
+      "id": "caf78802-845b-4877-b6d5-5e5336687588",
+      "name": "HTTP Request Reminder"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = items[0].json.message.content;\n\nconst subjectMatch = response.match(/EMAIL[\\s_]SUBJECT:\\s*(.*)/i);\n\nconst bodyRegex = /EMAIL[\\s_]BODY:/gi;\nlet lastIndex = -1, match;\nwhile ((match = bodyRegex.exec(response)) !== null) {\n  lastIndex = match.index + match[0].length;\n}\n\nconst checkoutRow = $('Get Checkout Row').first().json;\n\nconst email_subject = subjectMatch ? subjectMatch[1].trim().replace(/^[\"']|[\"']$/g, '') : 'Still thinking it over?';\n\nlet raw_body = lastIndex !== -1 ? response.slice(lastIndex).trim() : '';\nif (!raw_body) raw_body = `Your ${checkoutRow.Product} ($${checkoutRow.Price}) is still waiting for you.`;\n\nraw_body = raw_body.replace(/^(Dear|Hi|Hello|Hey)\\b[^.!?\\n]{0,30}[.!?]\\s*/i, '');\nraw_body = raw_body.replace(/\\n*\\b(Best regards|Sincerely|Warm regards)\\b[\\s\\S]*$/i, '').trim();\n\nconst cleaned = raw_body\n  .replace(/\\r\\n/g, '\\n')\n  .replace(/\\n{2,}/g, '\\n\\n')\n  .split('\\n\\n')\n  .map(p => p.replace(/\\n/g, ' ').replace(/\\s+/g, ' ').trim())\n  .filter(p => p.length > 0)\n  .join('<br><br>');\n\nconst companyName = 'StrideWell Footwear';\n\nconst email_body = `Hi there,<br><br>${cleaned}<br><br><a href=\"${checkoutRow['Recovery Link']}\">Complete your order</a><br><br>Best regards,<br>${companyName} Team`;\n\nreturn [{\n  json: {\n    email_subject,\n    email_body,\n    to_email: checkoutRow.Email\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -176
+      ],
+      "id": "f7f99e15-6e3f-47ae-9642-e662bbeeb192",
+      "name": "Code Reminder"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to_email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1664,
+        -176
+      ],
+      "id": "4d9e01fe-7077-4b7b-bb45-221e1611ec34",
+      "name": "Gmail Reminder",
+      "webhookId": "75768d50-f305-4b7c-87f7-ef94d001bff2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "SpT0jIgZBEiEW6bI",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "Cart Recovery Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Checkout Token": "={{ $('Webhook').first().json.body.cart_token }}",
+            "Email": "={{ $('Get Checkout Row').first().json.Email }}",
+            "Product": "={{ $('Get Checkout Row').first().json.Product }}",
+            "Price": "={{ $('Get Checkout Row').first().json.Price }}",
+            "Status": "Reminder Sent",
+            "Recovery Link": "={{ $('Get Checkout Row').first().json['Recovery Link'] }}",
+            "Created At": "={{ $('Get Checkout Row').first().json['Created At'] }}",
+            "Last Updated": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "Checkout Token"
+          ],
+          "schema": [
+            {
+              "id": "Checkout Token",
+              "displayName": "Checkout Token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product",
+              "displayName": "Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Price",
+              "displayName": "Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recovery Link",
+              "displayName": "Recovery Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Updated",
+              "displayName": "Last Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1888,
+        -176
+      ],
+      "id": "f5c767a4-51a8-48d4-a1ca-8c626408e632",
+      "name": "Sheets Reminder Sent",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MibvnPXiFQoGx68A",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7718ea7a-6de6-456f-bb86-29403c3b9cb7",
+              "leftValue": "={{ $json.headers['x-shopify-topic'] }}",
+              "rightValue": "=orders/create",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        96,
+        16
+      ],
+      "id": "55dba7c6-e240-4b10-9029-53602e1851ef",
+      "name": "Filter Orders"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "Cart Recovery Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        96,
+        240
+      ],
+      "id": "d698f4a5-7683-4c47-a16a-9b19939701fd",
+      "name": "Get All Rows",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MibvnPXiFQoGx68A",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "=your-email@example.com",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        544,
+        240
+      ],
+      "id": "4934fead-c1b3-4678-a485-344a4dbf76e4",
+      "name": "Gmail Weekly Summary",
+      "webhookId": "cb51c577-2ce2-48c7-b952-b33c71cbc199",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "SpT0jIgZBEiEW6bI",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Log Checkout",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Checkout Row": {
+      "main": [
+        [
+          {
+            "node": "Filter Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 24h": {
+      "main": [
+        [
+          {
+            "node": "Get Checkout Row 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Checkout Row 2": {
+      "main": [
+        [
+          {
+            "node": "Filter Discount",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Discount": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request Discount",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request Discount": {
+      "main": [
+        [
+          {
+            "node": "Code Discount",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Discount": {
+      "main": [
+        [
+          {
+            "node": "Gmail Discount",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Discount": {
+      "main": [
+        [
+          {
+            "node": "Sheets Discount Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 48h": {
+      "main": [
+        [
+          {
+            "node": "Get Checkout Row 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Checkout Row 3": {
+      "main": [
+        [
+          {
+            "node": "Filter Urgency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Urgency": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request Urgency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request Urgency": {
+      "main": [
+        [
+          {
+            "node": "Code Urgency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Urgency": {
+      "main": [
+        [
+          {
+            "node": "Gmail Urgency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Urgency": {
+      "main": [
+        [
+          {
+            "node": "Sheets Urgency Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets Discount Sent": {
+      "main": [
+        [
+          {
+            "node": "Wait 48h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request Thank you": {
+      "main": [
+        [
+          {
+            "node": "Code Thank you",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Thank you": {
+      "main": [
+        [
+          {
+            "node": "Gmail Thank you",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets Order Recovered": {
+      "main": [
+        [
+          {
+            "node": "Pick Upsell",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Upsell": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request Thank you",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get All Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Stats": {
+      "main": [
+        [
+          {
+            "node": "Gmail Weekly Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Checkout": {
+      "main": [
+        [
+          {
+            "node": "Filter New Checkouts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter New Checkouts": {
+      "main": [
+        [
+          {
+            "node": "Wait 1h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1h": {
+      "main": [
+        [
+          {
+            "node": "Get Checkout Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Reminder": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request Reminder": {
+      "main": [
+        [
+          {
+            "node": "Code Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Reminder": {
+      "main": [
+        [
+          {
+            "node": "Gmail Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Reminder": {
+      "main": [
+        [
+          {
+            "node": "Sheets Reminder Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets Reminder Sent": {
+      "main": [
+        [
+          {
+            "node": "Wait 24h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Orders": {
+      "main": [
+        [
+          {
+            "node": "Sheets Order Recovered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Rows": {
+      "main": [
+        [
+          {
+            "node": "Weekly Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d27137df-4712-4e06-a5e0-44a1ff261fb5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ae5e04c6b351ce5e2625878c49d057f90498eb9994c1316755df7e61ac263d57"
+  },
+  "nodeGroups": [],
+  "id": "ZmFY37Hb8476wi9t",
+  "tags": []
+}
